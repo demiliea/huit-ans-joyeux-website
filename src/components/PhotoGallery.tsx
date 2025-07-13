@@ -1,19 +1,38 @@
 
-import React, { useState } from 'react';
-import { Camera, Heart, Upload } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Camera, Heart, Upload, Share2 } from 'lucide-react';
+import PhotoUpload from './PhotoUpload';
 
 const PhotoGallery: React.FC = () => {
   const [selectedPhoto, setSelectedPhoto] = useState<number | null>(null);
+  const [showUpload, setShowUpload] = useState(false);
+  const [photos, setPhotos] = useState<string[]>([]);
 
-  // Photos placeholder - vous pouvez les remplacer par les vraies photos
-  const photos = [
-    '/placeholder.svg?height=300&width=300&text=Souvenir+1',
-    '/placeholder.svg?height=300&width=300&text=Souvenir+2',
-    '/placeholder.svg?height=300&width=300&text=Souvenir+3',
-    '/placeholder.svg?height=300&width=300&text=Souvenir+4',
-    '/placeholder.svg?height=300&width=300&text=Souvenir+5',
-    '/placeholder.svg?height=300&width=300&text=Souvenir+6'
-  ];
+  // Load photos from localStorage on component mount
+  useEffect(() => {
+    const savedPhotos = localStorage.getItem('birthday-photos');
+    if (savedPhotos) {
+      try {
+        setPhotos(JSON.parse(savedPhotos));
+      } catch (error) {
+        console.error('Error loading photos from localStorage:', error);
+      }
+    }
+  }, []);
+
+  // Save photos to localStorage whenever photos change
+  useEffect(() => {
+    localStorage.setItem('birthday-photos', JSON.stringify(photos));
+  }, [photos]);
+
+  const handlePhotosUploaded = (newPhotos: string[]) => {
+    setPhotos(newPhotos);
+    setShowUpload(false);
+  };
+
+  const shareGooglePhotos = () => {
+    window.open('https://photos.app.goo.gl/XhXLN94pzY2U3wEp9', '_blank');
+  };
 
   return (
     <section className="py-20 bg-gradient-soft">
@@ -27,46 +46,78 @@ const PhotoGallery: React.FC = () => {
             <Heart className="w-8 h-8 text-birthday-coral" />
           </div>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Tous ces moments précieux qui nous ont menés jusqu'à ce jour spécial !
+            Partagez vos plus beaux souvenirs et ajoutez vos photos pour cette journée spéciale !
           </p>
         </div>
 
-        {/* Instructions pour ajouter des photos */}
-        <div className="bg-white/50 backdrop-blur-sm rounded-2xl p-6 mb-12 border border-birthday-pink/20">
-          <div className="flex items-center justify-center gap-3 mb-3">
-            <Upload className="w-6 h-6 text-birthday-purple" />
-            <h3 className="text-lg font-semibold text-gray-800">
-              Ajoutez vos photos de l'album Google Photos
-            </h3>
+        {/* Action Buttons */}
+        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+          <button
+            onClick={() => setShowUpload(!showUpload)}
+            className="bg-gradient-to-r from-birthday-pink to-birthday-purple text-white font-semibold py-3 px-6 rounded-xl hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2"
+          >
+            <Upload className="w-5 h-5" />
+            {showUpload ? 'Masquer l\'upload' : 'Ajouter des photos'}
+          </button>
+          
+          <button
+            onClick={shareGooglePhotos}
+            className="bg-white text-birthday-purple font-semibold py-3 px-6 rounded-xl border-2 border-birthday-purple hover:bg-birthday-purple hover:text-white transition-all duration-300 flex items-center justify-center gap-2"
+          >
+            <Share2 className="w-5 h-5" />
+            Voir l'album Google Photos
+          </button>
+        </div>
+
+        {/* Upload Section */}
+        {showUpload && (
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-8 mb-12 border border-birthday-pink/20">
+            <PhotoUpload onPhotosUploaded={handlePhotosUploaded} existingPhotos={photos} />
           </div>
-          <p className="text-gray-600 text-center">
-            Téléchargez les photos de votre album Google Photos et remplacez les placeholders ci-dessous.
-            Cliquez sur "Upload Images" dans l'éditeur Lovable pour commencer !
-          </p>
-        </div>
+        )}
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {photos.map((photo, index) => (
-            <div
-              key={index}
-              className="group relative overflow-hidden rounded-2xl bg-white shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105 cursor-pointer"
-              onClick={() => setSelectedPhoto(index)}
-            >
-              <div className="aspect-square">
-                <img
-                  src={photo}
-                  alt={`Souvenir ${index + 1}`}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                />
-              </div>
-              <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                <div className="absolute bottom-4 left-4 text-white">
-                  <Heart className="w-5 h-5" />
+        {/* Photo Grid */}
+        {photos.length > 0 ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {photos.map((photo, index) => (
+              <div
+                key={index}
+                className="group relative overflow-hidden rounded-2xl bg-white shadow-lg hover:shadow-2xl transition-all duration-300 transform hover:scale-105 cursor-pointer"
+                onClick={() => setSelectedPhoto(index)}
+              >
+                <div className="aspect-square">
+                  <img
+                    src={photo}
+                    alt={`Souvenir ${index + 1}`}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                  />
+                </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <div className="absolute bottom-4 left-4 text-white">
+                    <Heart className="w-5 h-5" />
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-16">
+            <Camera className="w-20 h-20 text-birthday-pink mx-auto mb-6 opacity-50" />
+            <h3 className="text-2xl font-semibold text-gray-800 mb-4">
+              Aucune photo pour le moment
+            </h3>
+            <p className="text-gray-600 mb-8 max-w-md mx-auto">
+              Commencez à créer votre galerie de souvenirs en ajoutant vos premières photos !
+            </p>
+            <button
+              onClick={() => setShowUpload(true)}
+              className="bg-gradient-to-r from-birthday-pink to-birthday-purple text-white font-semibold py-3 px-8 rounded-xl hover:shadow-lg transition-all duration-300 flex items-center justify-center gap-2 mx-auto"
+            >
+              <Upload className="w-5 h-5" />
+              Ajouter des photos
+            </button>
+          </div>
+        )}
 
         {/* Modal pour photo sélectionnée */}
         {selectedPhoto !== null && (
@@ -78,7 +129,7 @@ const PhotoGallery: React.FC = () => {
               <img
                 src={photos[selectedPhoto]}
                 alt={`Souvenir ${selectedPhoto + 1}`}
-                className="w-full h-auto rounded-2xl shadow-2xl"
+                className="w-full h-auto rounded-2xl shadow-2xl max-h-screen object-contain"
               />
               <button
                 onClick={() => setSelectedPhoto(null)}
@@ -86,6 +137,9 @@ const PhotoGallery: React.FC = () => {
               >
                 ×
               </button>
+              <div className="absolute bottom-4 left-4 bg-black/50 backdrop-blur-sm rounded-xl px-4 py-2 text-white">
+                <p className="text-sm">Photo {selectedPhoto + 1} sur {photos.length}</p>
+              </div>
             </div>
           </div>
         )}
