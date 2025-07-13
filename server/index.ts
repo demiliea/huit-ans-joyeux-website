@@ -2,9 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import multer from 'multer';
-import { google } from 'googleapis';
-import { OAuth2Client } from 'google-auth-library';
-import axios from 'axios';
+import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs';
 import path from 'path';
@@ -22,30 +21,22 @@ app.use(express.json());
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-// Google Photos API configuration
-const CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-const REDIRECT_URI = process.env.GOOGLE_REDIRECT_URI || 'http://localhost:3001/auth/google/callback';
+// Tigris S3 configuration
+const s3Client = new S3Client({
+  region: process.env.AWS_REGION || 'auto',
+  endpoint: process.env.AWS_ENDPOINT_URL_S3,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
+  },
+});
 
-const oauth2Client = new google.auth.OAuth2(
-  CLIENT_ID,
-  CLIENT_SECRET,
-  REDIRECT_URI
-);
-
-// Scopes for Google Photos API
-const SCOPES = [
-  'https://www.googleapis.com/auth/photoslibrary.appendonly',
-  'https://www.googleapis.com/auth/photoslibrary.readonly.appcreateddata'
-];
-
-// Store for user tokens (in production, use a proper database)
-const userTokens = new Map<string, any>();
+const BUCKET_NAME = process.env.BUCKET_NAME || 'photos';
 
 // Types
 interface PhotoUploadResponse {
-  mediaItemId: string;
-  productUrl: string;
+  id: string;
+  url: string;
   filename: string;
   uploadTime: string;
 }
@@ -56,91 +47,78 @@ interface TimelineEvent {
   title: string;
   description: string;
   photoUrl?: string;
-  mediaItemId?: string;
+  photoId?: string;
   createdAt: string;
 }
 
 // In-memory storage for timeline events (in production, use a database)
 const timelineEvents: TimelineEvent[] = [];
 
-// Authentication routes
-app.get('/auth/google', (req, res) => {
-  const authUrl = oauth2Client.generateAuthUrl({
-    access_type: 'offline',
-    scope: SCOPES,
-    include_granted_scopes: true
-  });
-  
-  res.json({ authUrl });
-});
-
-app.get('/auth/google/callback', async (req, res) => {
-  const { code } = req.query;
-  
-  if (!code) {
-    return res.status(400).json({ error: 'Authorization code required' });
-  }
-
-  try {
-    const { tokens } = await oauth2Client.getAccessToken(code as string);
-    oauth2Client.setCredentials(tokens);
-    
-    // Store tokens (in production, associate with user ID)
-    const userId = uuidv4();
-    userTokens.set(userId, tokens);
-    
-    res.json({ 
-      success: true, 
-      userId,
-      message: 'Authentication successful'
-    });
-  } catch (error) {
-    console.error('Error exchanging code for tokens:', error);
-    res.status(500).json({ error: 'Authentication failed' });
-  }
-});
-
 // Photo upload endpoint
 app.post('/api/upload-photo', upload.single('photo'), async (req, res) => {
-  const { userId, title, description, year } = req.body;
+  const { title, description, year } = req.body;
   const file = req.file;
 
   if (!file) {
     return res.status(400).json({ error: 'No file provided' });
   }
 
-  if (!userId || !userTokens.has(userId)) {
-    return res.status(401).json({ error: 'User not authenticated' });
-  }
-
   try {
-    const tokens = userTokens.get(userId);
-    oauth2Client.setCredentials(tokens);
+    // Generate unique filename
+    const fileExtension = path.extname(file.originalname);
+    const uniqueFilename = `${uuidv4()}${fileExtension}`;
+    const key = `photos/${uniqueFilename}`;
 
-    // Upload to Google Photos
-    const uploadResponse = await uploadToGooglePhotos(file.buffer, file.originalname);
-    
-    // Create media item
-    const mediaItem = await createMediaItem(uploadResponse.uploadToken, file.originalname);
-    
-    // Add to timeline
+    // Upload to Tigris
+    const uploadCommand = new PutObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: key,
+      Body: file.buffer,
+      ContentType: file.mimetype,
+      Metadata: {
+        originalName: file.originalname,
+        uploadTime: new Date().toISOString(),
+        title: title || 'Photo Upload',
+        description: description || 'Photo uploaded via Birthday Timeline App',
+        year: year || new Date().getFullYear().toString(),
+      },
+    });
+
+    await s3Client.send(uploadCommand);
+
+    // Generate signed URL for access
+    const getObjectCommand = new GetObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: key,
+    });
+
+    const signedUrl = await getSignedUrl(s3Client, getObjectCommand, { expiresIn: 3600 * 24 * 365 }); // 1 year expiry
+
+    // Create timeline event
     const timelineEvent: TimelineEvent = {
       id: uuidv4(),
       year: year || new Date().getFullYear().toString(),
       title: title || 'Photo Upload',
-      description: description || 'Photo uploaded to Google Photos',
-      photoUrl: mediaItem.baseUrl,
-      mediaItemId: mediaItem.id,
-      createdAt: new Date().toISOString()
+      description: description || 'Photo uploaded to Tigris storage',
+      photoUrl: signedUrl,
+      photoId: uniqueFilename,
+      createdAt: new Date().toISOString(),
     };
-    
+
     timelineEvents.push(timelineEvent);
-    
+
+    const response: PhotoUploadResponse = {
+      id: uniqueFilename,
+      url: signedUrl,
+      filename: file.originalname,
+      uploadTime: new Date().toISOString(),
+    };
+
     res.json({
       success: true,
-      mediaItem,
+      photo: response,
       timelineEvent,
-      message: 'Photo uploaded successfully'
+      message: 'Photo uploaded successfully to Tigris',
     });
   } catch (error) {
     console.error('Error uploading photo:', error);
@@ -154,126 +132,56 @@ app.get('/api/timeline', (req, res) => {
   res.json(sortedEvents);
 });
 
-// Get user's albums
-app.get('/api/albums', async (req, res) => {
-  const { userId } = req.query;
-  
-  if (!userId || !userTokens.has(userId as string)) {
-    return res.status(401).json({ error: 'User not authenticated' });
-  }
+// Get photo by ID with signed URL
+app.get('/api/photo/:id', async (req, res) => {
+  const { id } = req.params;
 
   try {
-    const tokens = userTokens.get(userId as string);
-    oauth2Client.setCredentials(tokens);
-    
-    const albums = await listAlbums();
-    res.json(albums);
+    const key = `photos/${id}`;
+    const getObjectCommand = new GetObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: key,
+    });
+
+    const signedUrl = await getSignedUrl(s3Client, getObjectCommand, { expiresIn: 3600 });
+
+    res.json({
+      success: true,
+      url: signedUrl,
+      id,
+    });
   } catch (error) {
-    console.error('Error fetching albums:', error);
-    res.status(500).json({ error: 'Failed to fetch albums' });
+    console.error('Error getting photo:', error);
+    res.status(500).json({ error: 'Failed to get photo' });
   }
 });
 
-// Create album
-app.post('/api/albums', async (req, res) => {
-  const { userId, title } = req.body;
-  
-  if (!userId || !userTokens.has(userId)) {
-    return res.status(401).json({ error: 'User not authenticated' });
-  }
-
+// Test Tigris connection
+app.get('/api/test-tigris', async (req, res) => {
   try {
-    const tokens = userTokens.get(userId);
-    oauth2Client.setCredentials(tokens);
+    // Test if we can connect to Tigris
+    const testKey = 'test-connection';
+    const testCommand = new PutObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: testKey,
+      Body: 'test',
+    });
+
+    await s3Client.send(testCommand);
     
-    const album = await createAlbum(title);
-    res.json(album);
+    res.json({
+      success: true,
+      message: 'Tigris connection successful',
+      bucket: BUCKET_NAME,
+    });
   } catch (error) {
-    console.error('Error creating album:', error);
-    res.status(500).json({ error: 'Failed to create album' });
+    console.error('Tigris connection error:', error);
+    res.status(500).json({ 
+      error: 'Failed to connect to Tigris',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 });
-
-// Helper functions
-async function uploadToGooglePhotos(fileBuffer: Buffer, filename: string): Promise<{ uploadToken: string }> {
-  const token = oauth2Client.credentials.access_token;
-  
-  const response = await axios.post(
-    'https://photoslibrary.googleapis.com/v1/uploads',
-    fileBuffer,
-    {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/octet-stream',
-        'X-Goog-Upload-File-Name': filename,
-        'X-Goog-Upload-Protocol': 'raw'
-      }
-    }
-  );
-
-  return { uploadToken: response.data };
-}
-
-async function createMediaItem(uploadToken: string, filename: string) {
-  const token = oauth2Client.credentials.access_token;
-  
-  const response = await axios.post(
-    'https://photoslibrary.googleapis.com/v1/mediaItems:batchCreate',
-    {
-      newMediaItems: [{
-        description: `Uploaded via Birthday Timeline App`,
-        simpleMediaItem: {
-          fileName: filename,
-          uploadToken: uploadToken
-        }
-      }]
-    },
-    {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    }
-  );
-
-  return response.data.newMediaItemResults[0].mediaItem;
-}
-
-async function listAlbums() {
-  const token = oauth2Client.credentials.access_token;
-  
-  const response = await axios.get(
-    'https://photoslibrary.googleapis.com/v1/albums',
-    {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    }
-  );
-
-  return response.data.albums || [];
-}
-
-async function createAlbum(title: string) {
-  const token = oauth2Client.credentials.access_token;
-  
-  const response = await axios.post(
-    'https://photoslibrary.googleapis.com/v1/albums',
-    {
-      album: {
-        title: title
-      }
-    },
-    {
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      }
-    }
-  );
-
-  return response.data;
-}
 
 // Health check
 app.get('/health', (req, res) => {
@@ -282,5 +190,6 @@ app.get('/health', (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  console.log(`Make sure to set up your Google Photos API credentials in .env file`);
+  console.log(`Using Tigris bucket: ${BUCKET_NAME}`);
+  console.log(`Make sure your Tigris credentials are set in environment variables`);
 });
