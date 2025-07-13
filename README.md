@@ -1,43 +1,40 @@
-# Birthday Timeline App with Google Photos Integration
+# Birthday Timeline App with Tigris Storage
 
-A beautiful birthday celebration app that integrates with Google Photos API to store and display photos on a dynamic timeline.
+A beautiful birthday celebration app that integrates with Fly.io's Tigris object storage to store and display photos on a dynamic timeline.
 
 ## Features
 
-- **Google Photos Integration**: Upload photos directly to Google Photos
-- **Dynamic Timeline**: Display photos on a chronological timeline
-- **Photo Gallery**: Beautiful photo display with modal view
-- **Wishes Section**: Collect birthday wishes and messages
-- **Responsive Design**: Mobile-friendly layout
-- **Real-time Updates**: Timeline automatically refreshes after photo uploads
+- **Tigris Storage Integration**: Upload photos directly to Fly.io's globally distributed object storage
+- **Dynamic Timeline**: Display photos and events chronologically
+- **Photo Management**: Upload, store, and retrieve photos with metadata
+- **Responsive Design**: Beautiful UI that works on all devices
+- **Automatically add photos to the timeline with year information
 
-## Google Photos API Integration
+## Tigris Object Storage Integration
 
-This app uses the Google Photos API to:
-- Upload photos to your Google Photos library
-- Create albums for organizing photos
-- Display photos on the timeline with metadata
-- Automatically add photos to the Google Photos timeline
+This app uses Fly.io's Tigris object storage to:
+- Store photos in globally distributed storage
+- Provide fast access to photos worldwide
+- Generate secure URLs for photo access
+- Automatically handle photo uploads and retrieval
 
-### Important Notes
+### Key Benefits of Tigris
 
-Due to recent Google Photos API changes (March 2025):
-- Only app-created content can be managed
-- Cannot write to existing shared albums via API
-- Photos uploaded via API appear on the Google Photos timeline based on upload date
-- The shared album URL you provided (`https://photos.app.goo.gl/XhXLN94pzY2U3wEp9`) can be used as reference but cannot be written to via API
+Due to Tigris being globally distributed:
+- Photos are stored in multiple regions for fast access
+- No complex authentication required
+- Photos are automatically cached globally
+- Simple S3-compatible API
 
-## Quick Start
+### 1. Setup Tigris Storage
 
-### 1. Setup Google Photos API
+Follow the setup guide in [TIGRIS_SETUP.md](./TIGRIS_SETUP.md)
 
-Follow the detailed setup guide in [GOOGLE_PHOTOS_SETUP.md](./GOOGLE_PHOTOS_SETUP.md)
-
-### 2. Configure Environment
+### 2. Configure Environment Variables
 
 ```bash
 cp .env.example .env
-# Edit .env with your Google Photos API credentials
+# Edit .env with your Tigris credentials
 ```
 
 ### 3. Install Dependencies
@@ -46,108 +43,163 @@ cp .env.example .env
 npm install
 ```
 
-### 4. Start the Application
+### 4. Run the Application
 
 ```bash
-# Start both frontend and backend
-npm run dev:full
+# Start backend server
+npm run backend
 
-# Or start separately:
-npm run backend  # Backend server (port 3001)
-npm run dev      # Frontend (port 3000)
+# Start frontend (in another terminal)
+npm run dev
+
+# Or start both at once
+npm run dev:full
 ```
 
-### 5. Use the App
+## Usage
 
-1. Open `http://localhost:3000`
-2. Scroll to "Upload to Google Photos" section
-3. Authenticate with Google Photos
-4. Upload photos with title, description, and year
-5. Watch them appear on the timeline!
+1. Open your browser and go to `http://localhost:3000`
+2. Scroll to "Upload to Tigris Storage" section
+3. Select a photo, add title, description, and year
+4. Click "Upload to Tigris Storage"
+5. View your photo on the timeline
 
 ## Project Structure
 
 ```
 ├── src/
 │   ├── components/
-│   │   ├── PhotoUpload.tsx      # Google Photos upload component
-│   │   ├── Timeline.tsx         # Dynamic timeline with photos
-│   │   ├── PhotoGallery.tsx     # Photo gallery display
-│   │   └── ...
-│   └── pages/
-│       └── Index.tsx            # Main page
+│   │   ├── PhotoUpload.tsx      # Tigris upload component
+│   │   ├── Timeline.tsx         # Timeline display
+│   │   └── PhotoGallery.tsx     # Photo gallery
+│   └── App.tsx                  # Main app component
 ├── server/
-│   └── index.ts                 # Backend server with Google Photos API
-├── .env.example                 # Environment variables template
-├── GOOGLE_PHOTOS_SETUP.md       # Detailed setup guide
+│   └── index.ts                 # Backend server with Tigris integration
+├── public/
+├── TIGRIS_SETUP.md              # Detailed setup guide
 └── README.md                    # This file
 ```
 
 ## API Endpoints
 
-- `GET /auth/google` - Get authentication URL
-- `GET /auth/google/callback` - Handle OAuth callback
-- `POST /api/upload-photo` - Upload photo to Google Photos
+### Photo Management
+- `POST /api/upload-photo` - Upload photo to Tigris
 - `GET /api/timeline` - Get timeline events
-- `GET /api/albums` - List user's albums
-- `POST /api/albums` - Create new album
+- `GET /api/photo/:id` - Get photo with signed URL
 
-## How It Works
+### Health Check
+- `GET /health` - Server health check
+- `GET /api/test-tigris` - Test Tigris connection
 
-1. **Authentication**: Users authenticate with Google Photos via OAuth 2.0
-2. **Photo Upload**: Photos are uploaded to Google Photos using the Library API
-3. **Timeline Integration**: Uploaded photos are automatically added to the timeline
-4. **Real-time Updates**: The timeline refreshes to show new photos
-5. **Google Photos Timeline**: Photos appear in the user's Google Photos timeline
+## Architecture
 
-## Features in Detail
+1. **Frontend**: React app with file upload interface
+2. **Backend**: Express server handling Tigris API calls
+3. **Storage**: Tigris object storage for photo files
+4. **Timeline**: In-memory storage for timeline events (use database in production)
 
-### Photo Upload Component
-- File selection with validation
-- Form for title, description, and year
-- Progress indicators
-- Error handling
+### Tigris Integration
 
-### Dynamic Timeline
-- Chronological display of events
-- Photo integration with metadata
-- Automatic sorting by year
-- Responsive design
+- Photo upload to Tigris with metadata
+- Secure signed URLs for photo access
+- Global distribution for fast access
 
-### Google Photos Integration
-- OAuth 2.0 authentication
-- Photo upload to Google Photos
-- Album creation and management
-- Timeline placement
+## Technologies
 
-## Technologies Used
-
-- **Frontend**: React, TypeScript, Tailwind CSS, Shadcn/ui
+- **Frontend**: React, TypeScript, Tailwind CSS, Vite
 - **Backend**: Node.js, Express, TypeScript
-- **APIs**: Google Photos Library API, Google OAuth 2.0
-- **Build Tools**: Vite, ESLint
+- **Storage**: Fly.io Tigris Object Storage (S3-compatible)
+- **UI Components**: Radix UI, Lucide Icons
 
-## Production Deployment
+## Development
 
-For production:
-1. Update Google Cloud Console with production URLs
-2. Configure proper environment variables
-3. Implement database for token storage
-4. Add error monitoring
-5. Configure HTTPS
+### Running Tests
+
+```bash
+npm test
+```
+
+### Building for Production
+
+```bash
+npm run build
+```
+
+## Deployment
+
+This app uses Fly.io CI/CD for deployment instead of GitHub Actions:
+
+### Quick Deployment
+```bash
+# Deploy to staging
+npm run deploy:staging
+
+# Deploy to production
+npm run deploy:production
+```
+
+### Full Setup
+1. **Install Fly.io CLI**: `curl -L https://fly.io/install.sh | sh`
+2. **Authenticate**: `flyctl auth login`
+3. **Set up Tigris storage**: `flyctl storage create`
+4. **Deploy**: `./scripts/deploy-production.sh`
+
+See [FLY_CICD_GUIDE.md](./FLY_CICD_GUIDE.md) for complete CI/CD documentation.
+
+## Troubleshooting
+
+### Common Issues
+
+1. **"Failed to upload photo"**
+   - Check Tigris credentials in .env
+   - Verify bucket exists
+   - Test connection with `/api/test-tigris`
+
+2. **"Connection failed"**
+   - Ensure Tigris endpoint is correct
+   - Check access keys and permissions
+
+3. **"CORS errors"**
+   - Make sure backend server is running
+   - Check frontend is making requests to correct backend URL
+
+### Debug Mode
+
+Enable debug logging by adding to your `.env`:
+```
+DEBUG=true
+```
+
+## Production Considerations
+
+For production deployment:
+
+1. **Use database** for timeline storage instead of in-memory
+2. **Configure proper CORS** for your domain
+3. **Set up monitoring** and logging
+4. **Use environment variables** for all configuration
+5. **Consider CDN** for additional performance (though Tigris is already global)
 
 ## Support
 
 If you encounter issues:
-1. Check the [setup guide](./GOOGLE_PHOTOS_SETUP.md)
-2. Verify your Google Cloud Console configuration
-3. Check browser console and server logs
-4. Ensure all dependencies are installed
+1. Check the browser console for errors
+2. Check server logs
+3. Verify Tigris configuration
+4. Test connection with the test endpoint
 
-## License
+## Additional Resources
 
-This project is for demonstration purposes. Please comply with Google Photos API Terms of Service.
+- [Tigris Documentation](https://fly.io/docs/reference/tigris/)
+- [Fly.io Documentation](https://fly.io/docs/)
+- [S3 API Reference](https://docs.aws.amazon.com/s3/latest/API/)
 
----
+## Timeline Photo Display
 
-Enjoy your birthday celebration with beautiful photo memories! 🎉📸
+Once photos are uploaded:
+1. They are stored in Tigris with global distribution
+2. They are automatically added to the timeline with the specified year
+3. The timeline refreshes to show new photos
+4. Photos are accessible via secure signed URLs
+
+This integration provides a seamless way to combine personal photos with milestone events in a beautiful timeline format, with the performance benefits of global distribution.
