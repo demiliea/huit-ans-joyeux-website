@@ -7,6 +7,8 @@ primary_region = "ord"
 [env]
   PORT = "3001"
   NODE_ENV = "production"
+  AWS_REGION = "auto"
+  AWS_ENDPOINT_URL_S3 = "https://fly.storage.tigris.dev"
 
 [http_service]
   internal_port = 3001
@@ -17,11 +19,12 @@ primary_region = "ord"
   processes = ["app"]
 
   [[http_service.checks]]
-    grace_period = "1s"
-    interval = "10s"
+    grace_period = "10s"
+    interval = "30s"
     restart_limit = 0
-    timeout = "2s"
+    timeout = "10s"
     path = "/health"
+    method = "GET"
 
 [processes]
   app = "npm start"

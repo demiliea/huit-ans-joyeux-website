@@ -17,6 +17,9 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
+// Serve static files from dist directory
+app.use(express.static(path.join(__dirname, '../dist')));
+
 // Configure multer for file uploads
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
@@ -24,7 +27,7 @@ const upload = multer({ storage });
 // Tigris S3 configuration
 const s3Client = new S3Client({
   region: process.env.AWS_REGION || 'auto',
-  endpoint: process.env.AWS_ENDPOINT_URL_S3,
+  endpoint: process.env.AWS_ENDPOINT_URL_S3 || 'https://fly.storage.tigris.dev',
   credentials: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID || '',
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
@@ -173,6 +176,7 @@ app.get('/api/test-tigris', async (req, res) => {
       success: true,
       message: 'Tigris connection successful',
       bucket: BUCKET_NAME,
+      endpoint: process.env.AWS_ENDPOINT_URL_S3 || 'https://fly.storage.tigris.dev',
     });
   } catch (error) {
     console.error('Tigris connection error:', error);
@@ -185,11 +189,22 @@ app.get('/api/test-tigris', async (req, res) => {
 
 // Health check
 app.get('/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+  res.json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    port: PORT
+  });
+});
+
+// Serve React app for all other routes
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../dist/index.html'));
 });
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   console.log(`Using Tigris bucket: ${BUCKET_NAME}`);
-  console.log(`Make sure your Tigris credentials are set in environment variables`);
+  console.log(`Tigris endpoint: ${process.env.AWS_ENDPOINT_URL_S3 || 'https://fly.storage.tigris.dev'}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
 });

@@ -5,18 +5,25 @@
 
 set -e
 
+# Setup flyctl PATH
+export FLYCTL_INSTALL="/home/ubuntu/.fly"
+export PATH="$FLYCTL_INSTALL/bin:$PATH"
+
 echo "🚀 Starting Fly.io deployment..."
 
 # Check if flyctl is installed
 if ! command -v flyctl &> /dev/null; then
-    echo "❌ flyctl is not installed. Please install it first:"
-    echo "curl -L https://fly.io/install.sh | sh"
-    exit 1
+    echo "❌ flyctl is not installed. Installing now..."
+    curl -L https://fly.io/install.sh | sh
+    export FLYCTL_INSTALL="/home/ubuntu/.fly"
+    export PATH="$FLYCTL_INSTALL/bin:$PATH"
 fi
 
 # Check if user is authenticated
 if ! flyctl auth whoami &> /dev/null; then
     echo "❌ Not authenticated with Fly.io. Please run: flyctl auth login"
+    echo "💡 Run this command to authenticate:"
+    echo "   flyctl auth login"
     exit 1
 fi
 
@@ -31,14 +38,14 @@ fi
 
 # Set up Tigris storage if not exists
 echo "🗄️  Setting up Tigris storage..."
-if ! flyctl storage list | grep -q "tigris-storage"; then
+if ! flyctl storage list --app $APP_NAME 2>/dev/null | grep -q "tigris-storage"; then
     echo "Creating Tigris storage..."
-    flyctl storage create --name tigris-storage
+    flyctl storage create --name tigris-storage --app $APP_NAME
 fi
 
 # Deploy the application
 echo "🚀 Deploying to Fly.io..."
-flyctl deploy --no-cache
+flyctl deploy --app $APP_NAME --no-cache
 
 # Check deployment status
 echo "✅ Deployment completed!"
@@ -46,11 +53,14 @@ echo "🔗 App URL: https://$APP_NAME.fly.dev"
 
 # Run health check
 echo "🔍 Running health check..."
+sleep 15  # Wait for app to start
 if curl -f "https://$APP_NAME.fly.dev/health" > /dev/null 2>&1; then
     echo "✅ Health check passed!"
 else
     echo "❌ Health check failed!"
+    echo "📊 Check logs with: flyctl logs --app $APP_NAME"
     exit 1
 fi
 
 echo "🎉 Deployment successful!"
+echo "📊 Monitor your app at: https://fly.io/apps/$APP_NAME"
