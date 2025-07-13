@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { Calendar, Gift2, GraduationCap, Heart, Sparkles } from 'lucide-react';
+import { Calendar, Gift, GraduationCap, Heart, Sparkles } from 'lucide-react';
 
 interface TimelineEvent {
   year: string;
@@ -44,7 +43,7 @@ const Timeline: React.FC = () => {
       year: "2024",
       title: "18 ans - Majorité !",
       description: "Une nouvelle étape commence",
-      icon: <Gift2 className="w-5 h-5" />,
+      icon: <Gift className="w-5 h-5" />,
       color: "birthday-gold"
     }
   ];
