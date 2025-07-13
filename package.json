@@ -11,7 +11,14 @@
     "preview": "vite preview",
     "backend": "tsx server/index.ts",
     "dev:full": "concurrently \"npm run backend\" \"npm run dev\"",
-    "start": "tsx server/index.ts"
+    "start": "tsx server/index.ts",
+    "deploy:staging": "./scripts/deploy-staging.sh",
+    "deploy:production": "./scripts/deploy-production.sh",
+    "deploy:dev": "./scripts/deploy.sh",
+    "logs:staging": "flyctl logs --app birthday-timeline-tigris-staging",
+    "logs:production": "flyctl logs --app birthday-timeline-tigris",
+    "status:staging": "flyctl status --app birthday-timeline-tigris-staging",
+    "status:production": "flyctl status --app birthday-timeline-tigris"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.844.0",

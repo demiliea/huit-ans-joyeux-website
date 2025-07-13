@@ -127,11 +127,24 @@ npm run build
 
 ## Deployment
 
-This app is designed to run on Fly.io with Tigris storage:
+This app uses Fly.io CI/CD for deployment instead of GitHub Actions:
 
-1. Set up Tigris storage: `fly storage create`
-2. Deploy the app: `fly deploy`
-3. Environment variables are automatically configured
+### Quick Deployment
+```bash
+# Deploy to staging
+npm run deploy:staging
+
+# Deploy to production
+npm run deploy:production
+```
+
+### Full Setup
+1. **Install Fly.io CLI**: `curl -L https://fly.io/install.sh | sh`
+2. **Authenticate**: `flyctl auth login`
+3. **Set up Tigris storage**: `flyctl storage create`
+4. **Deploy**: `./scripts/deploy-production.sh`
+
+See [FLY_CICD_GUIDE.md](./FLY_CICD_GUIDE.md) for complete CI/CD documentation.
 
 ## Troubleshooting
 

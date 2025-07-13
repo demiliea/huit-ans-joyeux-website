@@ -2,7 +2,7 @@ app = "birthday-timeline-tigris"
 primary_region = "ord"
 
 [build]
-  builder = "heroku/buildpacks:20"
+  dockerfile = "Dockerfile"
 
 [env]
   PORT = "3001"
@@ -26,27 +26,17 @@ primary_region = "ord"
 [processes]
   app = "npm start"
 
-[[services]]
-  internal_port = 3001
-  protocol = "tcp"
-  script_checks = []
+[[vm]]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1
 
-  [services.concurrency]
-    hard_limit = 25
-    soft_limit = 20
-    type = "connections"
+# Deploy configuration
+[deploy]
+  release_command = "npm run build"
+  strategy = "rolling"
 
-  [[services.ports]]
-    force_https = true
-    handlers = ["http"]
-    port = 80
-
-  [[services.ports]]
-    handlers = ["tls", "http"]
-    port = 443
-
-  [[services.tcp_checks]]
-    grace_period = "1s"
-    interval = "15s"
-    restart_limit = 0
-    timeout = "2s"
+# Volume for persistent data (if needed)
+# [mounts]
+#   source = "data"
+#   destination = "/app/data"
