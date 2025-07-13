@@ -1,73 +1,153 @@
-# Welcome to your Lovable project
+# Birthday Timeline App with Google Photos Integration
 
-## Project info
+A beautiful birthday celebration app that integrates with Google Photos API to store and display photos on a dynamic timeline.
 
-**URL**: https://lovable.dev/projects/72854dbb-9410-4ee1-9821-b44d922ed134
+## Features
 
-## How can I edit this code?
+- **Google Photos Integration**: Upload photos directly to Google Photos
+- **Dynamic Timeline**: Display photos on a chronological timeline
+- **Photo Gallery**: Beautiful photo display with modal view
+- **Wishes Section**: Collect birthday wishes and messages
+- **Responsive Design**: Mobile-friendly layout
+- **Real-time Updates**: Timeline automatically refreshes after photo uploads
 
-There are several ways of editing your application.
+## Google Photos API Integration
 
-**Use Lovable**
+This app uses the Google Photos API to:
+- Upload photos to your Google Photos library
+- Create albums for organizing photos
+- Display photos on the timeline with metadata
+- Automatically add photos to the Google Photos timeline
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/72854dbb-9410-4ee1-9821-b44d922ed134) and start prompting.
+### Important Notes
 
-Changes made via Lovable will be committed automatically to this repo.
+Due to recent Google Photos API changes (March 2025):
+- Only app-created content can be managed
+- Cannot write to existing shared albums via API
+- Photos uploaded via API appear on the Google Photos timeline based on upload date
+- The shared album URL you provided (`https://photos.app.goo.gl/XhXLN94pzY2U3wEp9`) can be used as reference but cannot be written to via API
 
-**Use your preferred IDE**
+## Quick Start
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### 1. Setup Google Photos API
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+Follow the detailed setup guide in [GOOGLE_PHOTOS_SETUP.md](./GOOGLE_PHOTOS_SETUP.md)
 
-Follow these steps:
+### 2. Configure Environment
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+```bash
+cp .env.example .env
+# Edit .env with your Google Photos API credentials
 ```
 
-**Edit a file directly in GitHub**
+### 3. Install Dependencies
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```bash
+npm install
+```
 
-**Use GitHub Codespaces**
+### 4. Start the Application
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+```bash
+# Start both frontend and backend
+npm run dev:full
 
-## What technologies are used for this project?
+# Or start separately:
+npm run backend  # Backend server (port 3001)
+npm run dev      # Frontend (port 3000)
+```
 
-This project is built with:
+### 5. Use the App
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+1. Open `http://localhost:3000`
+2. Scroll to "Upload to Google Photos" section
+3. Authenticate with Google Photos
+4. Upload photos with title, description, and year
+5. Watch them appear on the timeline!
 
-## How can I deploy this project?
+## Project Structure
 
-Simply open [Lovable](https://lovable.dev/projects/72854dbb-9410-4ee1-9821-b44d922ed134) and click on Share -> Publish.
+```
+├── src/
+│   ├── components/
+│   │   ├── PhotoUpload.tsx      # Google Photos upload component
+│   │   ├── Timeline.tsx         # Dynamic timeline with photos
+│   │   ├── PhotoGallery.tsx     # Photo gallery display
+│   │   └── ...
+│   └── pages/
+│       └── Index.tsx            # Main page
+├── server/
+│   └── index.ts                 # Backend server with Google Photos API
+├── .env.example                 # Environment variables template
+├── GOOGLE_PHOTOS_SETUP.md       # Detailed setup guide
+└── README.md                    # This file
+```
 
-## Can I connect a custom domain to my Lovable project?
+## API Endpoints
 
-Yes, you can!
+- `GET /auth/google` - Get authentication URL
+- `GET /auth/google/callback` - Handle OAuth callback
+- `POST /api/upload-photo` - Upload photo to Google Photos
+- `GET /api/timeline` - Get timeline events
+- `GET /api/albums` - List user's albums
+- `POST /api/albums` - Create new album
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## How It Works
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+1. **Authentication**: Users authenticate with Google Photos via OAuth 2.0
+2. **Photo Upload**: Photos are uploaded to Google Photos using the Library API
+3. **Timeline Integration**: Uploaded photos are automatically added to the timeline
+4. **Real-time Updates**: The timeline refreshes to show new photos
+5. **Google Photos Timeline**: Photos appear in the user's Google Photos timeline
+
+## Features in Detail
+
+### Photo Upload Component
+- File selection with validation
+- Form for title, description, and year
+- Progress indicators
+- Error handling
+
+### Dynamic Timeline
+- Chronological display of events
+- Photo integration with metadata
+- Automatic sorting by year
+- Responsive design
+
+### Google Photos Integration
+- OAuth 2.0 authentication
+- Photo upload to Google Photos
+- Album creation and management
+- Timeline placement
+
+## Technologies Used
+
+- **Frontend**: React, TypeScript, Tailwind CSS, Shadcn/ui
+- **Backend**: Node.js, Express, TypeScript
+- **APIs**: Google Photos Library API, Google OAuth 2.0
+- **Build Tools**: Vite, ESLint
+
+## Production Deployment
+
+For production:
+1. Update Google Cloud Console with production URLs
+2. Configure proper environment variables
+3. Implement database for token storage
+4. Add error monitoring
+5. Configure HTTPS
+
+## Support
+
+If you encounter issues:
+1. Check the [setup guide](./GOOGLE_PHOTOS_SETUP.md)
+2. Verify your Google Cloud Console configuration
+3. Check browser console and server logs
+4. Ensure all dependencies are installed
+
+## License
+
+This project is for demonstration purposes. Please comply with Google Photos API Terms of Service.
+
+---
+
+Enjoy your birthday celebration with beautiful photo memories! 🎉📸
