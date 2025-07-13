@@ -10,26 +10,7 @@ interface Wish {
 }
 
 const WishesSection: React.FC = () => {
-  const [wishes, setWishes] = useState<Wish[]>([
-    {
-      id: 1,
-      name: "Maman & Papa",
-      message: "18 ans déjà ! Nous sommes si fiers de la personne merveilleuse que tu es devenue. Que cette nouvelle année t'apporte tout le bonheur du monde ! ❤️",
-      timestamp: "Il y a 2h"
-    },
-    {
-      id: 2,
-      name: "Les Amis",
-      message: "Enfin 18 ans ! Prêt(e) pour toutes les aventures qui nous attendent ! On va faire la fête comme jamais ! 🎉🎊",
-      timestamp: "Il y a 1h"
-    },
-    {
-      id: 3,
-      name: "Grand-mère",
-      message: "Mon petit-enfant chéri(e), je te souhaite une vie remplie d'amour, de joie et de réussite. Tu es notre fierté ! 💕",
-      timestamp: "Il y a 30min"
-    }
-  ]);
+  const [wishes, setWishes] = useState<Wish[]>([]);
 
   const [newWish, setNewWish] = useState({ name: '', message: '' });
 
@@ -100,26 +81,35 @@ const WishesSection: React.FC = () => {
 
           {/* Liste des messages */}
           <div className="space-y-6">
-            {wishes.map((wish) => (
-              <div
-                key={wish.id}
-                className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300"
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-r from-birthday-pink to-birthday-purple rounded-full flex items-center justify-center text-white font-bold">
-                      {wish.name.charAt(0).toUpperCase()}
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-gray-800">{wish.name}</h4>
-                      <p className="text-sm text-gray-500">{wish.timestamp}</p>
-                    </div>
-                  </div>
-                  <Star className="w-5 h-5 text-birthday-gold" />
-                </div>
-                <p className="text-gray-700 leading-relaxed">{wish.message}</p>
+            {wishes.length === 0 ? (
+              <div className="text-center py-12">
+                <MessageCircle className="w-16 h-16 text-birthday-pink mx-auto mb-4 opacity-50" />
+                <p className="text-gray-500 text-lg">
+                  Soyez le premier à laisser un message d'anniversaire !
+                </p>
               </div>
-            ))}
+            ) : (
+              wishes.map((wish) => (
+                <div
+                  key={wish.id}
+                  className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300"
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-gradient-to-r from-birthday-pink to-birthday-purple rounded-full flex items-center justify-center text-white font-bold">
+                        {wish.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-gray-800">{wish.name}</h4>
+                        <p className="text-sm text-gray-500">{wish.timestamp}</p>
+                      </div>
+                    </div>
+                    <Star className="w-5 h-5 text-birthday-gold" />
+                  </div>
+                  <p className="text-gray-700 leading-relaxed">{wish.message}</p>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
